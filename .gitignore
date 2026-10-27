@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+data/pages.json
+data/chunks.csv
+data/crawl_results.csv
+data/crawl_log.txt
+data/robots_snapshot.txt
