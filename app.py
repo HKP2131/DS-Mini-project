@@ -368,7 +368,10 @@ with tab_ask:
             with st.expander(f"Sources and retrieved evidence ({len(last_results)})", expanded=True):
                 for index, item in enumerate(last_results, start=1):
                     with st.container(border=True):
-                        st.markdown(f"**[{index}] {item['title']}**")
+                        st.markdown(f"**[{index}] {item['title']}** · retrieval score {float(item.get('score', 0.0)):.3f}")
+                        matched = item.get("matched_terms", [])
+                        if matched:
+                            st.caption("Query terms matched: " + ", ".join(matched[:8]))
                         st.markdown(f"[Open original Wikibooks page]({item['url']})")
                         st.caption("Retrieved evidence")
                         st.write(item["text"])
