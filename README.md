@@ -1,6 +1,6 @@
 # CivilRAG — Civil Engineering Question-Answering Bot
 
-CivilRAG is a Web Data Mining mini-project for civil engineering study questions. It collects a limited list of public Wikibooks article pages, checks the current `robots.txt`, extracts and chunks text, retrieves relevant passages with TF-IDF, and presents source-linked results with a collection chart.
+CivilRAG is a Web Data Mining mini-project for Civil Engineering study questions. It checks Wikibooks' current `robots.txt`, performs a small bounded crawl inside selected Civil Engineering books, extracts and chunks text, retrieves evidence with hybrid lexical search, and provides source-linked answers plus collection visualisation. The interface keeps results visible across reruns, offers example questions, supports retrying a failed collection, and provides a source-sentence fallback when no AI key is set.
 
 ## Cloud deployment: Streamlit Community Cloud
 
@@ -61,7 +61,7 @@ Read [ETHICS.md](ETHICS.md) and the current [Wikibooks robots.txt](https://en.wi
 
 ## Main files
 
-- `app.py` — Streamlit UI, retrieval, and optional Gemini-generated answers
+- `app.py` — polished Streamlit UI, persistent results, source-linked answer, and optional Gemini-generated answers
 - `config.py` — candidate URLs and crawl limits
 - `run_crawler.py` — local crawler entry point
 - `src/crawler.py` — robots-aware fetch and extraction
