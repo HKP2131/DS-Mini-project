@@ -17,7 +17,7 @@ from src.pipeline import Retriever, extractive_summary, prepare_chunks, save_col
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 PAGES_FILE = DATA_DIR / "pages.json"
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 EXAMPLES = [
     "What is soil mechanics?",
     "How does traffic flow relate to transportation engineering?",
