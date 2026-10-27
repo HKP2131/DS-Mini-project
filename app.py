@@ -127,9 +127,16 @@ def generate_grounded_answer(question: str, passages: list[dict], api_key: str) 
     if not answer:
         raise RuntimeError("The AI service returned an empty answer. The source-based answer is shown instead.")
 
-    # Keep only citation IDs corresponding to actual passages; never show an invented source number.
+    # Keep citations tied to retrieved sources. If the model fails to cite any
+    # source, use the extractive fallback instead of presenting uncited claims.
     valid_ids = {str(i) for i in range(1, len(passages) + 1)}
     found_ids = re.findall(r"\[(\d+)\]", answer)
+    valid_found_ids = [source_id for source_id in found_ids if source_id in valid_ids]
+    if not valid_found_ids:
+        raise RuntimeError(
+            "The AI response did not provide usable source citations. "
+            "A source-based answer is shown instead."
+        )
     if any(source_id not in valid_ids for source_id in found_ids):
         answer = re.sub(
             r"\[(\d+)\]",
