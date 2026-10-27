@@ -1,0 +1,1 @@
+CivilRAG creates crawl outputs in this folder when run locally or on a fresh cloud deployment. Generated files are not committed by default. Keep source URLs and applicable attribution/license information with any dataset you redistribute.
