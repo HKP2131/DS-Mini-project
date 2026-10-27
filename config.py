@@ -18,6 +18,22 @@ SEED_URLS = [
     "https://en.wikibooks.org/wiki/Environmental_Health_Engineering_Theory_and_Practice",
 ]
 
+# Link discovery is restricted to these civil-engineering books so crawling
+# does not wander across unrelated Wikibooks content.
+ALLOWED_ARTICLE_PREFIXES = [
+    "/wiki/Subject:Civil_engineering",
+    "/wiki/Applied_Ecology",
+    "/wiki/Fundamentals_of_Transportation",
+    "/wiki/Transportation_Economics",
+    "/wiki/Soil_Mechanics",
+    "/wiki/House_Construction",
+    "/wiki/Advanced_Structural_Analysis",
+    "/wiki/Environmental_Health_Engineering_Theory_and_Practice",
+    "/wiki/Building_Services",
+    "/wiki/Seismic_Fitness",
+    "/wiki/Fundamental_Specifications_for_Steel_Construction",
+]
+
 MAX_PAGES = 8
 REQUEST_DELAY_SECONDS = 2.0
 REQUEST_TIMEOUT_SECONDS = 12
