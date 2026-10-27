@@ -1,20 +1,32 @@
 # CivilRAG — Civil Engineering Question-Answering Bot
 
-CivilRAG is a small Web Data Mining project that collects a limited set of publicly accessible Wikibooks educational pages, extracts and preprocesses their text, retrieves relevant passages with TF-IDF, and displays source-linked results and a collection chart.
+CivilRAG is a Web Data Mining mini-project for civil engineering study questions. It collects a limited list of public Wikibooks article pages, checks the current `robots.txt`, extracts and chunks text, retrieves relevant passages with TF-IDF, and presents source-linked results with a collection chart.
 
-**Default mode is free and needs no paid API key.** It is an evidence-retrieval bot: it shows relevant source passages rather than claiming to generate an LLM answer. The architecture can be extended with a free-tier or local LLM later.
+## Cloud deployment: Streamlit Community Cloud
 
-## Cloud demo: Streamlit Community Cloud
-
-The application is prepared for Streamlit Community Cloud. On a fresh deployment, if `data/pages.json` is not present, the app checks the current Wikibooks `robots.txt` and attempts a small crawl from its predefined candidate article list. It saves the extracted data in the app's runtime filesystem and builds the retrieval index when it launches.
+This repository is prepared for Streamlit Community Cloud. When the app starts without `data/pages.json`, it tries a small robots.txt-aware crawl and builds the collection in the cloud runtime.
 
 1. Open https://share.streamlit.io/ and sign in with GitHub.
-2. Click **Create app**.
-3. Select repository `HKP2131/DS-Mini-project`, branch `main`, and main file path `app.py`.
-4. Click **Deploy** and wait for the build to finish.
-5. Open the public Streamlit URL and test a question.
+2. Choose **Create app**.
+3. Set repository to `HKP2131/DS-Mini-project`, branch to `main`, and main file path to `app.py`.
+4. Click **Deploy** and wait for installation and startup.
+5. Open the Streamlit URL it assigns and test a question.
 
-Deployment requires your one-time authorization of Streamlit Community Cloud to access the GitHub repository. This repository alone is not a public live app until deployment succeeds. The cloud filesystem may be reset when the app restarts, so a fresh startup may crawl again.
+A public live app URL does not exist until the deployment has succeeded. The one-time Streamlit authorization/deploy action must be completed in your account. Streamlit's free Community Cloud service is documented at https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy.
+
+## Enable generated answers (free-tier Gemini API)
+
+The app works without any key in source-passage retrieval mode. To let Gemini synthesize a response grounded in retrieved excerpts:
+
+1. Get a Gemini API key from https://aistudio.google.com/apikey.
+2. Open the deployed app's Streamlit Community Cloud settings and select **Secrets**.
+3. Add this TOML line, replacing the placeholder with your key:
+   ```toml
+   GEMINI_API_KEY = "your-real-key"
+   ```
+4. Save secrets and reboot/redeploy the app if prompted.
+
+Do not paste a real API key in this README or commit it to GitHub. The repository includes `.streamlit/secrets.toml.example` as a format reference. Gemini's model availability and free-tier limits depend on Google's current terms and quota; check https://ai.google.dev/gemini-api/docs/pricing. If no key is configured or the API limit is reached, the bot falls back to retrieved evidence passages.
 
 ## Local run (optional)
 
@@ -27,31 +39,34 @@ python run_crawler.py
 streamlit run app.py
 ```
 
-## What the project demonstrates
+## Project pipeline
 
-1. **Collection:** low-volume crawling of Wikibooks article pages.
-2. **Ethics:** fetch and parse the current `robots.txt`; skip disallowed URLs; use an identifying User-Agent; wait between requests; stop on HTTP 429 or server errors.
-3. **Preprocessing:** HTML text extraction, basic cleaning, and overlapping word chunks.
-4. **Mining:** TF-IDF vectors and cosine similarity to retrieve relevant text.
-5. **Visualisation:** collection table and word-count chart.
-6. **Evidence:** show the original source URL with each retrieved passage.
+1. **Collection:** small, low-volume fetches of candidate Wikibooks pages.
+2. **Ethical checks:** fetch current `robots.txt`, skip disallowed pages, identify the crawler, wait between requests, use timeouts, and stop on HTTP 429/server errors.
+3. **Preprocessing:** remove page chrome, extract text, and split text into overlapping chunks.
+4. **Mining / retrieval:** TF-IDF vectors and cosine similarity return relevant excerpts.
+5. **Answering:** optional Gemini API synthesizes a response from the retrieved excerpts only.
+6. **Visualisation:** show collected pages and a word-count chart.
+7. **Attribution:** each retrieved excerpt is linked to its original Wikibooks page.
 
-## Important ethical conditions
+## Ethical conditions
 
-- The seed URL list only contains candidate pages; availability and permission are checked at runtime.
+- The seed list contains candidate pages only. Runtime rules and HTTP responses determine which pages are collected.
 - If `robots.txt` cannot be fetched, the crawler stops rather than guessing.
-- Public access and robots.txt do not, by themselves, grant permission to republish content.
-- Check each page's licensing notice and preserve attribution/share-alike conditions before redistributing collected text.
-- Do not disable the robots check if zero pages are collected. Inspect the crawl log instead.
+- Public access and robots.txt do not automatically grant copyright permission.
+- Verify each page's license and retain attribution/share-alike conditions before redistributing source text.
+- If no pages are collected, inspect `data/crawl_log.txt`; never bypass disallow rules or access restrictions.
 
-Read [ETHICS.md](ETHICS.md) and the current [Wikibooks robots.txt](https://en.wikibooks.org/robots.txt) before running or submitting the project.
+Read [ETHICS.md](ETHICS.md) and the current [Wikibooks robots.txt](https://en.wikibooks.org/robots.txt) before using the crawler.
 
-## Project files
+## Main files
 
-- `app.py` — Streamlit app, question search and visualisation
-- `config.py` — candidate URL list and polite crawl settings
+- `app.py` — Streamlit UI, retrieval, and optional Gemini-generated answers
+- `config.py` — candidate URLs and crawl limits
 - `run_crawler.py` — local crawler entry point
-- `src/crawler.py` — robots-aware fetch and text extraction
-- `src/pipeline.py` — chunking, TF-IDF retrieval and output files
-- `ETHICS.md` — ethical and licensing notes
+- `src/crawler.py` — robots-aware fetch and extraction
+- `src/pipeline.py` — chunking, TF-IDF retrieval, and CSV/JSON outputs
+- `tests/test_civilrag.py` — offline smoke tests
+- `.github/workflows/ci.yml` — automated compile and test checks
+- `ETHICS.md` — ethical/legal note
 - `requirements.txt` — Python dependencies
