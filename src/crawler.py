@@ -10,6 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from config import (
+    ALLOWED_ARTICLE_PREFIXES,
     ROBOTS_URL,
     USER_AGENT,
     REQUEST_TIMEOUT_SECONDS,
@@ -45,6 +46,38 @@ def canonical_article_url(url: str) -> str | None:
         return urlunparse(("https", "en.wikibooks.org", parsed.path, "", "", ""))
     except (TypeError, ValueError):
         return None
+
+
+def _matches_allowed_book(path: str, prefixes: list[str]) -> bool:
+    return any(path == prefix or path.startswith(prefix + "/") for prefix in prefixes)
+
+
+def discover_article_links(
+    html: str,
+    base_url: str,
+    allowed_prefixes: list[str] | None = None,
+) -> list[str]:
+    """Discover article links only from the configured Civil Engineering book paths."""
+    prefixes = allowed_prefixes or ALLOWED_ARTICLE_PREFIXES
+    soup = BeautifulSoup(html, "html.parser")
+    content = soup.select_one("#mw-content-text") or soup.find("main")
+    if content is None:
+        return []
+
+    links = []
+    seen = set()
+    for anchor in content.select("a[href]"):
+        candidate = canonical_article_url(urljoin(base_url, anchor.get("href", "")))
+        if not candidate:
+            continue
+        path = urlparse(candidate).path
+        if not _matches_allowed_book(path, prefixes):
+            continue
+        if candidate == base_url or candidate in seen:
+            continue
+        seen.add(candidate)
+        links.append(candidate)
+    return links
 
 
 def load_robots(session: requests.Session):
@@ -100,7 +133,7 @@ def _get_candidate(
     start_url: str,
     robots: urllib.robotparser.RobotFileParser,
 ) -> tuple[requests.Response | None, str, str]:
-    """Fetch one permitted article while checking every redirect before following it."""
+    """Fetch one permitted article and check each redirect before following it."""
     current_url = start_url
     for _ in range(4):
         if not robots.can_fetch(USER_AGENT, current_url):
@@ -126,7 +159,7 @@ def _get_candidate(
 
 
 def crawl(seed_urls: list[str], max_pages: int, output_dir: Path):
-    """Fetch a small candidate list politely and record each crawl decision."""
+    """Polite, bounded breadth-first crawl inside the permitted Civil Engineering books."""
     output_dir.mkdir(parents=True, exist_ok=True)
     log_path = output_dir / "crawl_log.txt"
     collected = []
@@ -151,19 +184,26 @@ def crawl(seed_urls: list[str], max_pages: int, output_dir: Path):
         log_path.write_text("\n".join(log_lines), encoding="utf-8")
         return collected, log_lines
 
+    queue = list(seed_urls)
+    queued = set()
+    for candidate in queue:
+        canonical = canonical_article_url(candidate)
+        if canonical:
+            queued.add(canonical)
     seen = set()
-    for raw_url in seed_urls:
-        if len(collected) >= max(1, int(max_pages)):
-            break
+    candidate_limit = max(30, max(1, int(max_pages)) * 5)
+    candidates_checked = 0
 
+    while queue and len(collected) < max(1, int(max_pages)) and candidates_checked < candidate_limit:
+        raw_url = queue.pop(0)
         url = canonical_article_url(raw_url)
         if not url:
             log_lines.append(f"SKIP invalid/out-of-scope URL: {raw_url}")
             continue
         if url in seen:
-            log_lines.append(f"SKIP duplicate URL: {url}")
             continue
         seen.add(url)
+        candidates_checked += 1
 
         if not robots.can_fetch(USER_AGENT, url):
             log_lines.append(f"ROBOTS DISALLOW — skipped without request: {url}")
@@ -195,6 +235,13 @@ def crawl(seed_urls: list[str], max_pages: int, output_dir: Path):
                 log_lines.append(f"SKIP non-HTML response: {final_url}")
                 continue
 
+            # Discover child articles from the configured book paths only. Every
+            # discovered URL is checked against robots.txt before a request.
+            for child_url in discover_article_links(response.text, final_url):
+                if child_url not in seen and child_url not in queued:
+                    queue.append(child_url)
+                    queued.add(child_url)
+
             page = extract_page(response.text, final_url)
             if page:
                 collected.append(page)
@@ -209,6 +256,8 @@ def crawl(seed_urls: list[str], max_pages: int, output_dir: Path):
         except Exception as exc:
             log_lines.append(f"ERROR: {url} | {type(exc).__name__}: {exc}")
 
-    log_lines.append(f"Finished. Pages collected: {len(collected)}")
+    log_lines.append(
+        f"Finished. Pages collected: {len(collected)}; candidates checked: {candidates_checked}"
+    )
     log_path.write_text("\n".join(log_lines), encoding="utf-8")
     return collected, log_lines
