@@ -260,6 +260,7 @@ with st.sidebar:
         with st.spinner("Checking the current robots.txt and refreshing the small collection…"):
             try:
                 refresh_collection()
+                st.session_state.pop("refresh_error", None)
                 st.cache_data.clear()
                 for key in list(st.session_state.keys()):
                     if key.startswith("civilrag_last_"):
@@ -359,18 +360,17 @@ with tab_ask:
             st.caption(f"Search diagnostic: {match_label}. This is a retrieval-ranking signal, not a probability of correctness.")
             with st.expander(f"Sources and retrieved evidence ({len(last_results)})", expanded=True):
                 for index, item in enumerate(last_results, start=1):
-                    st.markdown(f"**[{index}] {item['title']}**")
-                    st.markdown(f"[Open original Wikibooks page]({item['url']})")
-                    with st.expander(f"View passage {index}", expanded=False):
+                    with st.container(border=True):
+                        st.markdown(f"**[{index}] {item['title']}**")
+                        st.markdown(f"[Open original Wikibooks page]({item['url']})")
+                        st.caption("Retrieved evidence")
                         st.write(item["text"])
         if st.button("Clear answer", key="clear_answer"):
             for key in list(st.session_state.keys()):
                 if key.startswith("civilrag_last_"):
                     del st.session_state[key]
             st.rerun()
-    elif st.session_state.get("civilrag_last_notice"):
-        st.info(st.session_state["civilrag_last_notice"])
-    else:
+    elif not st.session_state.get("civilrag_last_notice"):
         st.info(
             "Start with a sample question or enter your own. Answers are limited to the collected source material; "
             "if the sources do not establish an answer, CivilRAG should say so."
