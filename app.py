@@ -27,6 +27,14 @@ EXAMPLES = [
 ]
 
 
+def safe_int(value, default: int = 0) -> int:
+    """Convert optional dataset metadata to an integer without breaking the UI."""
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+
+
 def load_pages() -> list[dict]:
     """Read valid collected page records without crashing on a missing/corrupt file."""
     if not PAGES_FILE.exists():
@@ -241,8 +249,7 @@ if not pages:
 chunks = prepare_chunks(pages)
 retriever = Retriever(chunks)
 api_key = get_gemini_key()
-total_words = sum(int(page.get("word_count", len(page.get("text", "").split()))) for page in pages)
-total_chars = sum(int(page.get("characters", len(page.get("text", "")))) for page in pages)
+total_words = sum(safe_int(page.get("word_count"), len(page.get("text", "").split())) for page in pages)
 
 with st.sidebar:
     st.markdown("## Collection status")
@@ -382,8 +389,8 @@ with tab_sources:
         [
             {
                 "Title": page.get("title", ""),
-                "Words": int(page.get("word_count", len(page.get("text", "").split()))),
-                "Characters": int(page.get("characters", len(page.get("text", "")))),
+                "Words": safe_int(page.get("word_count"), len(page.get("text", "").split())),
+                "Characters": safe_int(page.get("characters"), len(page.get("text", ""))),
                 "Source URL": page.get("url", ""),
             }
             for page in pages
